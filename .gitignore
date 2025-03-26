@@ -1,0 +1,7 @@
+.qodo
+
+__pycache__/
+*.pyc
+.env
+screenshots/*.png
+!screenshots/.gitkeep
