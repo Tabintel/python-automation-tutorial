@@ -152,6 +152,18 @@ python scripts/mobile_automation_test.py
 - Interacts with mobile-specific elements
 - Demonstrates mobile testing capabilities
 
+### Mobile Automation
+
+- **Web Mobile Automation:**
+  - See `mobile/web_mobile_automation_test.py` for browser automation on real mobile devices (LambdaTest cloud).
+- **Native App Automation:**
+  - See `mobile/native_app_automation_test.py` for Android native app automation (Appium).
+  - See `mobile/ios_native_app_automation_test.py` for iOS native app automation (Appium).
+
+> Download the sample apps:
+> - Android: https://prod-mobile-artefacts.lambdatest.com/assets/docs/proverbial_android.apk
+> - iOS: https://prod-mobile-artefacts.lambdatest.com/assets/docs/proverbial_ios.ipa
+
 ### PDF Comparison Test
 
 **Description:** Simulates PDF comparison by navigating to a sample PDF URL and capturing its screenshot.
@@ -170,15 +182,19 @@ python scripts/pdf_comparison_test.py
 
 ### Smart UI Test
 
-**Description:** Validates UI element details by capturing its location and size for smart UI validation.
+**Description:**
+Establishes a baseline screenshot of a UI element (header) and, on subsequent runs, compares the current UI state to the baseline. This demonstrates how Smart UI can identify UI changes across builds.
 
 **Run:**
 ```bash
-python scripts/smart_ui_test.py
+pytest scripts/smart_ui_test.py
 ```
 
 **What it does:**
 - Connects to LambdaTest using Firefox
 - Navigates to the Selenium Playground
 - Locates a header element and retrieves its dimensions
-- Demonstrates SmartUI validation concepts
+- Takes a screenshot of the header
+- If a baseline exists, compares the current screenshot to the baseline (visual diff logic can be added)
+- If no baseline exists, saves the current screenshot as the baseline
+- Demonstrates SmartUI validation and visual comparison concepts

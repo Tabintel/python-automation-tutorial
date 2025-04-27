@@ -15,6 +15,9 @@ Execution:
     Verify output on the console and via LambdaTest Dashboard.
 """
 
+# This script has moved to mobile/web_mobile_automation_test.py and is now covered there.
+# For native app automation, see mobile/native_app_automation_test.py and mobile/ios_native_app_automation_test.py
+
 import os
 import json
 from playwright.sync_api import sync_playwright

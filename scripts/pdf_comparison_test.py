@@ -19,6 +19,7 @@ Execution:
 import os
 import json
 import logging
+import pytest
 from playwright.sync_api import sync_playwright
 
 # Configure logging
@@ -38,48 +39,17 @@ def get_ws_endpoint(caps: dict) -> str:
     caps_json = json.dumps(caps)
     return f"wss://cdp.lambdatest.com/playwright?capabilities={caps_json}&user={username}&key={access_key}"
 
-def pdf_comparison_test():
-    try:
-        capabilities = {
-            "browserName": "Chrome",
-            "browserVersion": "latest",
-            "platform": "Windows 10",
-            "build": "Playwright Python Automation Build",
-            "name": "PDF Comparison Test",
-            "visual": True,  # Enable visual testing features
-        }
-        ws_endpoint = get_ws_endpoint(capabilities)
-        
-        with sync_playwright() as p:
-            logger.info("Connecting to LambdaTest Cloud")
-            browser = p.chromium.connect(ws_endpoint)
-            page = browser.new_page()
-            
-            # Navigate to a sample PDF URL
-            pdf_url = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
-            logger.info(f"Navigating to PDF URL: {pdf_url}")
-            page.goto(pdf_url)
-            
-            # Wait for PDF to load
-            page.wait_for_load_state("networkidle")
-            
-            # Create screenshots directory if it doesn't exist
-            os.makedirs("screenshots", exist_ok=True)
-            
-            # Take screenshot
-            screenshot_path = "screenshots/pdf_comparison.png"
-            page.screenshot(path=screenshot_path)
-            logger.info(f"PDF screenshot saved to {screenshot_path}")
-            
-            # Mark test as passed in LambdaTest
-            page.evaluate("_ => {}", "lambdatest_action: setTestStatus", {"status": "passed", "remark": "PDF comparison successful"})
-            
-            browser.close()
-            logger.info("Test completed successfully")
-            
-    except Exception as e:
-        logger.error(f"Test failed: {str(e)}")
-        raise
+@pytest.mark.parametrize("lt_browser", [{"browser_type": "chromium", "capabilities": {"browserName": "Chrome", "browserVersion": "latest", "LT:Options": {"platform": "Windows 10", "build": "PDF-Build", "name": "PDF Comparison Test"}}}], indirect=True)
+def test_pdf_comparison(lt_browser):
+    """
+    Simulates PDF comparison by navigating to a sample PDF URL and capturing its screenshot on LambdaTest.
+    """
+    page = lt_browser.new_page()
+    pdf_url = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+    page.goto(pdf_url)
+    page.screenshot(path="screenshots/pdf_screenshot.png")
+    logger.info(f"[PDF Comparison] Screenshot saved for PDF at {pdf_url}")
+    page.close()
 
 if __name__ == "__main__":
-    pdf_comparison_test()
+    pytest.main([__file__, "-v", "--disable-pytest-warnings"])

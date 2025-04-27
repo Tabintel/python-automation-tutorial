@@ -18,6 +18,7 @@ Execution:
 
 import os
 import json
+import pytest
 from playwright.sync_api import sync_playwright
 
 def get_ws_endpoint(caps: dict) -> str:
@@ -27,28 +28,20 @@ def get_ws_endpoint(caps: dict) -> str:
     ws_endpoint = f"wss://cdp.lambdatest.com/playwright?capabilities={caps_json}&user={username}&key={access_key}"
     return ws_endpoint
 
-def lambda_test_ecommerce():
-    capabilities = {
-        "browserName": "Firefox",
-        "browserVersion": "latest",
-        "platform": "Windows 10",
-        "build": "Playwright Python Automation Build",
-        "name": "E-Commerce Search Test",
-    }
-    ws_endpoint = get_ws_endpoint(capabilities)
-    
-    with sync_playwright() as p:
-        browser = p.firefox.connect(ws_endpoint)
-        page = browser.new_page()
-        page.goto("https://ecommerce-playground.lambdatest.io/")
-        page.fill("[name='search']", "Laptop")
-        page.keyboard.press("Enter")
-        page.wait_for_timeout(5000)  # Wait for results to load
-        
-        # Find and click the first "Add to Cart" button
-        page.click("text=Add to Cart", timeout=10000)
-        print("Product search and add-to-cart executed successfully!")
-        browser.close()
+@pytest.mark.parametrize("lt_browser", [{"browser_type": "firefox", "capabilities": {"browserName": "Firefox", "browserVersion": "latest", "LT:Options": {"platform": "Windows 10", "build": "ECommerce-Build", "name": "E-Commerce Search Test"}}}], indirect=True)
+def test_ecommerce_search(lt_browser):
+    """
+    Automate a product search and simulate an add-to-cart action on the LambdaTest E-Commerce Playground.
+
+    :param lt_browser: The lt_browser pytest fixture for browser management.
+    """
+    page = lt_browser.new_page()
+    page.goto("https://ecommerce-playground.lambdatest.io/")
+    page.fill("input[name='search']", "iPhone")
+    page.click("button[type='button'][data-bs-original-title='Search']")
+    assert "iPhone" in page.content()
+    print(f"[E-Commerce] Search completed. Title: {page.title()}")
+    page.close()
 
 if __name__ == "__main__":
-    lambda_test_ecommerce()
+    pytest.main([__file__])

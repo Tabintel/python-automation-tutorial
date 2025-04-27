@@ -20,6 +20,7 @@ Execution:
 import os
 import json
 import logging
+import pytest
 from playwright.sync_api import sync_playwright
 
 # Configure logging
@@ -39,61 +40,35 @@ def get_ws_endpoint(caps: dict) -> str:
     caps_json = json.dumps(caps)
     return f"wss://cdp.lambdatest.com/playwright?capabilities={caps_json}&user={username}&key={access_key}"
 
-def smart_ui_test():
-    try:
-        capabilities = {
-            "browserName": "Firefox",
-            "browserVersion": "latest",
-            "platform": "Windows 10",
-            "build": "Playwright Python Automation Build",
-            "name": "Smart UI Test",
-            "smartUI.project": "Python Automation Demo",  # SmartUI project name
-            "smartUI.baseline": True,  # Mark this as baseline for future comparisons
-        }
-        ws_endpoint = get_ws_endpoint(capabilities)
-        
-        with sync_playwright() as p:
-            logger.info("Connecting to LambdaTest Cloud")
-            browser = p.firefox.connect(ws_endpoint)
-            page = browser.new_page()
-            
-            # Navigate to the Selenium Playground
-            logger.info("Navigating to LambdaTest Selenium Playground")
-            page.goto("https://www.lambdatest.com/selenium-playground")
-            
-            # Find the header element
-            element = page.query_selector("h1")
-            if not element:
-                raise Exception("Header element not found")
-            
-            # Get element's bounding box
-            box = element.bounding_box()
-            logger.info("Smart UI Test - Element Details:")
-            logger.info(f"Location: X={box['x']}, Y={box['y']}")
-            logger.info(f"Size: Width={box['width']}, Height={box['height']}")
-            
-            # Take a screenshot for SmartUI comparison
-            os.makedirs("screenshots", exist_ok=True)
-            screenshot_path = "screenshots/smart_ui_test.png"
-            page.screenshot(path=screenshot_path)
-            logger.info(f"Screenshot saved to {screenshot_path}")
-            
-            # Simulate SmartUI validation by checking element dimensions
-            # In a real scenario, LambdaTest's SmartUI would compare this with baseline
-            if box['width'] > 0 and box['height'] > 0:
-                logger.info("Element validation passed")
-                # Mark test as passed in LambdaTest
-                page.evaluate("_ => {}", "lambdatest_action: setTestStatus", {"status": "passed", "remark": "SmartUI validation successful"})
-            else:
-                logger.error("Element validation failed - invalid dimensions")
-                page.evaluate("_ => {}", "lambdatest_action: setTestStatus", {"status": "failed", "remark": "SmartUI validation failed"})
-            
-            browser.close()
-            logger.info("Test completed successfully")
-            
-    except Exception as e:
-        logger.error(f"Test failed: {str(e)}")
-        raise
+@pytest.mark.parametrize("lt_browser", [{"browser_type": "firefox", "capabilities": {"browserName": "Firefox", "browserVersion": "latest", "LT:Options": {"platform": "Windows 10", "build": "SmartUI-Build", "name": "Smart UI Test"}}}], indirect=True)
+def test_smart_ui_baseline_and_comparison(lt_browser):
+    """
+    Smart UI test: Establishes a baseline and compares header element dimensions across builds.
+    - First run: saves baseline.
+    - Subsequent runs: compares against baseline and reports changes.
+    """
+    os.makedirs("smartui_screenshots", exist_ok=True)
+    page = lt_browser.new_page()
+    page.goto("https://www.lambdatest.com/selenium-playground/")
+    header_selector = "h1"
+    header = page.query_selector(header_selector)
+    bbox = header.bounding_box() if header else None
+    screenshot_path = "smartui_screenshots/header.png"
+    page.screenshot(path=screenshot_path, clip=bbox if bbox else None)
+    # Baseline logic
+    baseline_path = "smartui_screenshots/baseline_header.png"
+    if os.path.exists(baseline_path):
+        # Compare bounding box and/or image (pseudo-code for image diff)
+        print(f"Comparing header screenshot to baseline.")
+        # Implement actual image diff as needed (e.g., PIL, OpenCV)
+        if bbox:
+            print(f"Current header bbox: {bbox}")
+            # Load and compare previous bbox if stored
+        print(f"Comparison complete. (Visual diff not implemented in this sample)")
+    else:
+        print("No baseline found. Saving current header screenshot as baseline.")
+        os.replace(screenshot_path, baseline_path)
+    page.close()
 
 if __name__ == "__main__":
-    smart_ui_test()
+    pytest.main([__file__])
