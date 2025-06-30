@@ -76,5 +76,4 @@ def test_ecommerce_search(lt_browser: Page):
     
     print(f"[E-Commerce] Search for '{SEARCH_TERM}' completed successfully")
 
-# The test is now properly integrated with pytest and uses the lt_browser fixture
-# No need for the main block as pytest will discover and run the test
+# The test is integrated with pytest and uses the lt_browser fixture

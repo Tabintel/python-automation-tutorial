@@ -111,8 +111,3 @@ def test_mobile_emulation(lt_page, device):
     
     # Log test completion
     print(f"Successfully completed mobile test on {device['name']} with viewport {device['viewport']}")
-
-# This test is now a pytest test and should be run using pytest
-# Remove the main block since we're using pytest for test discovery
-# if __name__ == "__main__":
-#     mobile_automation_test()

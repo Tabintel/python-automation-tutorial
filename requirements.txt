@@ -1,9 +1,16 @@
 # Core dependencies
 playwright==1.38.0
 python-dotenv==1.0.0
+appium-python-client==3.1.1
+selenium==4.12.0
+requests==2.31.0
 
-# Utilities
+# Testing framework
 pytest==7.4.0
 pytest-playwright==0.4.0
 pytest-html==3.2.0
-Appium-Python-Client==3.1.0
+pytest-xdist==3.3.1
+pytest-timeout==2.1.0
+
+# Playwright browsers
+playwright install
