@@ -1,15 +1,20 @@
-    Uses Playwright to connect to LambdaTest, navigate to the e-commerce site,
-    perform a product search, and click the "Add to Cart" button.
-    
-Code Walkthrough:
-        Uses Playwright with LambdaTest to navigate to the e-commerce site,
-    perform a product search, and verify search results.
-    
+"""
+E-commerce Search Test
+
+This test demonstrates product search functionality on an e-commerce site using Playwright
+and LambdaTest. It performs the following actions:
+- Connects to LambdaTest using the configured browser
+- Navigates to the e-commerce playground
+- Accepts cookies if present
+- Performs a product search
+- Verifies search results
+- Takes a screenshot of the results
+
 Code Walkthrough:
     - Uses the lt_browser fixture from conftest.py for browser management
     - Locates the search box and enters a search query
     - Verifies search results and takes a screenshot
-    
+
 Execution:
     Run with: pytest web/ecommerce_search_test.py -v
     Verify test execution via console output and the LambdaTest Dashboard.
