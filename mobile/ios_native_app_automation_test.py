@@ -8,238 +8,229 @@ Note: The app URL should point to a valid app uploaded to your LambdaTest storag
 For testing purposes, upload your .ipa file to LambdaTest and update the APP_URL constant.
 """
 
-import os
+import time
+import logging
 import pytest
+
 from appium.webdriver.common.appiumby import AppiumBy
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import WebDriverException, TimeoutException
-import time
+from selenium.common.exceptions import TimeoutException
 
-# LambdaTest credentials from environment variables
-LAMBDATEST_USERNAME = os.getenv("LT_USERNAME")
-LAMBDATEST_ACCESS_KEY = os.getenv("LT_ACCESS_KEY")
 
-# Note: Replace with your uploaded app URL from LambdaTest storage
-# Upload your .ipa file to LambdaTest and update this URL
-APP_URL = "YOUR_UPLOADED_APP_URL.ipa"  # e.g., "lt://APP1234567890abcdef"
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
 
-# iOS capabilities with improved device selection using regex
-IOS_CAPS = {
-    "platformName": "iOS",
-    "deviceName": "iPhone *",  # Using regex to match any available iPhone
-    "platformVersion": "16",  # Target iOS version (will use the closest available)
-    "app": APP_URL,
-    "isRealMobile": True,
-    "build": "iOS Native App Build",
-    "name": "iOS Native App Test",
-    "devicelog": True,
-    "visual": True,
-    "network": True,
-    "console": True,
-    "autoGrantPermissions": True
-}
 
 # App-specific elements (update these selectors according to your app)
 class AppElements:
-    # Example elements - replace with your app's actual element selectors
-    WELCOME_MESSAGE = (AppiumBy.ACCESSIBILITY_ID, "welcomeMessage")
-    LOGIN_BUTTON = (AppiumBy.ACCESSIBILITY_ID, "loginButton")
-    USERNAME_FIELD = (AppiumBy.ACCESSIBILITY_ID, "usernameField")
-    PASSWORD_FIELD = (AppiumBy.ACCESSIBILITY_ID, "passwordField")
-    SUBMIT_BUTTON = (AppiumBy.ACCESSIBILITY_ID, "submitButton")
-    HOME_SCREEN_TITLE = (AppiumBy.ACCESSIBILITY_ID, "homeTitle")
+    TEXT_ELEMENT = (AppiumBy.ID, "Text")
+    TOAST_ELEMENT = (AppiumBy.ID, "Toast")
+    NOTIFICATION_ELEMENT = (AppiumBy.ID, "Notification")
+    GEOLOCATION_ELEMENT = (AppiumBy.ID, "GeoLocation")
+    COLOUR_ELEMENT = (AppiumBy.ID, "Colour")
+    HOME_ELEMENT = (AppiumBy.ID, "Home")
 
-@pytest.mark.usefixtures("ios_driver")
+
+MOBILE_CAPS = {"build": "Ios Mobile Build", "name": "Ios Mobile Automation Test"}
+
+
+@pytest.mark.parametrize("ios_driver", [MOBILE_CAPS], indirect=True)
 class TestIOSNativeApp:
     """
     Test suite for iOS native app automation on LambdaTest real device cloud.
-    This test demonstrates various interactions with an iOS app.
+    This test demonstrates various interactions with the Proverbial iOS app.
     """
-    
+
     def test_app_launch_and_basic_interactions(self, ios_driver):
-        """Test basic app launch and interactions."""
         driver = ios_driver
         wait = WebDriverWait(driver, 20)
-        
+
         try:
-            # 1. Verify app launched successfully
-            print("iOS app launched successfully!")
-            
-            # 2. Take initial screenshot
-            driver.save_screenshot("ios_initial_screen.png")
-            print("Initial screenshot saved as 'ios_initial_screen.png'")
-            
-            # 3. Get and log device information
+            logger.info("iOS app launched successfully.")
+
+            self._take_screenshot(driver, "ios_initial_screen.png")
             self._log_device_info(driver)
-            
-            # 4. Check battery status
             self._log_battery_status(driver)
-            
-            # 5. Test orientation changes
             self._test_orientation(driver)
-            
-            # 6. Test touch interactions (swipe)
             self._test_swipe_gesture(driver)
-            
-            # 7. Test basic navigation (example with placeholder selectors)
             self._test_navigation(driver, wait)
-            
-            # 8. Test app state management
             self._test_app_state_management(driver)
-            
-            # 9. Take final screenshot
-            driver.save_screenshot("ios_final_screen.png")
-            print("Final screenshot saved as 'ios_final_screen.png'")
-            
+
+            self._take_screenshot(driver, "ios_final_screen.png")
+
         except Exception as e:
-            # Capture screenshot on failure
-            driver.save_screenshot("ios_test_failure.png")
-            print("Screenshot saved as 'ios_test_failure.png'")
+            logger.error(f"Test failed with error: {e}")
+            self._take_screenshot(driver, "ios_test_failure.png")
             raise
-    
+
     def _log_device_info(self, driver):
-        """Log device information."""
         device_info = {
-            'platform_version': driver.capabilities.get('platformVersion'),
-            'device_udid': driver.capabilities.get('udid'),
-            'device_name': driver.capabilities.get('deviceName'),
-            'automation_name': driver.capabilities.get('automationName'),
-            'browser_name': driver.capabilities.get('browserName'),
-            'app': driver.capabilities.get('app')
+            "platform_version": driver.capabilities.get("platformVersion"),
+            "device_manufacturer": driver.capabilities.get("deviceManufacturer"),
+            "device_model": driver.capabilities.get("deviceModel"),
+            "device_udid": driver.capabilities.get("udid"),
+            "automation_name": driver.capabilities.get("automationName"),
+            "app_package": driver.capabilities.get("appPackage"),
+            "app_activity": driver.capabilities.get("appActivity"),
         }
-        print("\n=== Device Information ===")
+
+        logger.info("📱 Device Information:")
         for key, value in device_info.items():
-            print(f"{key.replace('_', ' ').title()}: {value}")
-    
+            if value:
+                logger.info(f"{key.replace('_', ' ').title()}: {value}")
+
     def _log_battery_status(self, driver):
-        """Log battery status information."""
         try:
-            battery_info = driver.execute_script('mobile: batteryInfo')
-            print("\n=== Battery Status ===")
-            print(f"Level: {battery_info.get('level')}%")
-            print(f"State: {battery_info.get('state')}")
+            battery_info = driver.execute_script("mobile: batteryInfo")
+            logger.info("Battery Status:")
+            logger.info(f"Level: {battery_info.get('level')}%")
+            logger.info(f"State: {battery_info.get('state')}")
         except Exception as e:
-            print(f"Could not get battery info: {str(e)}")
-    
+            logger.warning(f"Could not retrieve battery info: {e}")
+
     def _test_orientation(self, driver):
-        """Test device orientation changes."""
-        print("\n=== Testing Orientation ===")
-        
-        # Get current orientation
-        current_orientation = driver.orientation
-        print(f"Current orientation: {current_orientation}")
-        
-        # Toggle orientation if possible
-        new_orientation = "LANDSCAPE" if current_orientation == "PORTRAIT" else "PORTRAIT"
+        logger.info("Testing Orientation...")
+
         try:
+            current_orientation = driver.orientation
+            logger.info(f"Current orientation: {current_orientation}")
+
+            new_orientation = (
+                "LANDSCAPE" if current_orientation == "PORTRAIT" else "PORTRAIT"
+            )
+
             driver.orientation = new_orientation
-            print(f"Changed orientation to: {new_orientation}")
-            time.sleep(2)  # Wait for rotation to complete
-            
-            # Verify orientation changed
-            assert driver.orientation == new_orientation, \
-                f"Failed to change orientation to {new_orientation}"
-                
-            # Take a screenshot in the new orientation
-            driver.save_screenshot(f"ios_{new_orientation.lower()}_orientation.png")
-            print(f"Screenshot saved in {new_orientation} orientation")
-            
-            # Return to original orientation
-            driver.orientation = current_orientation
-            print(f"Returned to original orientation: {current_orientation}")
-            
-        except Exception as e:
-            print(f"Orientation test warning: {str(e)}")
-    
-    def _test_swipe_gesture(self, driver):
-        """Test swipe gesture on the screen."""
-        print("\n=== Testing Swipe Gesture ===")
-        
-        # Get screen dimensions
-        window_size = driver.get_window_size()
-        width = window_size['width']
-        height = window_size['height']
-        
-        # Define swipe coordinates (vertical swipe)
-        start_x = width // 2
-        start_y = int(height * 0.7)
-        end_y = int(height * 0.3)
-        
-        print(f"Performing swipe from ({start_x}, {start_y}) to ({start_x}, {end_y})")
-        driver.swipe(start_x, start_y, start_x, end_y, 500)
-        
-        # Take screenshot after swipe
-        driver.save_screenshot("ios_after_swipe.png")
-        print("Screenshot after swipe saved as 'ios_after_swipe.png'")
-    
-    def _test_navigation(self, driver, wait):
-        """Test basic navigation flows in the app."""
-        print("\n=== Testing Navigation ===")
-        
-        try:
-            # Example: Check if login button exists and click it
-            # login_button = wait.until(EC.element_to_be_clickable(AppElements.LOGIN_BUTTON))
-            # login_button.click()
-            # print("Clicked on login button")
-            # 
-            # # Example: Enter credentials
-            # username_field = wait.until(EC.presence_of_element_located(AppElements.USERNAME_FIELD))
-            # password_field = driver.find_element(*AppElements.PASSWORD_FIELD)
-            # 
-            # username_field.send_keys("testuser")
-            # password_field.send_keys("testpass")
-            # print("Entered credentials")
-            # 
-            # # Submit the form
-            # driver.find_element(*AppElements.SUBMIT_BUTTON).click()
-            # print("Submitted login form")
-            # 
-            # # Verify successful login
-            # home_title = wait.until(EC.presence_of_element_located(AppElements.HOME_SCREEN_TITLE))
-            # assert home_title.is_displayed(), "Login failed - home screen not displayed"
-            # print("Successfully logged in")
-            
-            print("Navigation test completed (placeholders - update with actual selectors)")
-            
-        except TimeoutException:
-            print("Navigation test skipped - element not found (update selectors for your app)")
-        except Exception as e:
-            print(f"Navigation test warning: {str(e)}")
-    
-    def _test_app_state_management(self, driver):
-        """Test app behavior when backgrounded and restored."""
-        print("\n=== Testing App State Management ===")
-        
-        try:
-            # Get current app state
-            app_state = driver.query_app_state(driver.current_package)
-            print(f"Current app state: {app_state}")
-            
-            # Background the app
-            driver.background_app(-1)  # Background the app for default time
-            print("App sent to background")
+            logger.info(f"Changed orientation to: {new_orientation}")
             time.sleep(2)
-            
-            # Bring app back to foreground
-            driver.activate_app(driver.current_package)
-            print("App brought back to foreground")
-            
-            # Verify app is in foreground
-            app_state = driver.query_app_state(driver.current_package)
-            assert app_state == 4, "App not in foreground after activation"
-            print("App state verified after foregrounding")
-            
+
+            assert driver.orientation == new_orientation, (
+                f"Failed to change orientation to {new_orientation}"
+            )
+
+            self._take_screenshot(
+                driver, f"ios_{new_orientation.lower()}_orientation.png"
+            )
+
+            driver.orientation = current_orientation
+            logger.info(f"Returned to original orientation: {current_orientation}")
+
         except Exception as e:
-            print(f"App state management test warning: {str(e)}")
-            # Take a screenshot on error
-            error_screenshot = driver.get_screenshot_as_png()
-            with open("ios_app_error.png", "wb") as f:
-                f.write(error_screenshot)
-            raise
-            
-        finally:
-            # Always quit the driver to end the session
-            if 'driver' in locals():
-                driver.quit()
-                print("Test completed. Driver session ended.")
+            logger.warning(f"Orientation test failed: {e}")
+
+    def _test_swipe_gesture(self, driver):
+        logger.info("Testing Swipe Gesture...")
+
+        try:
+            size = driver.get_window_size()
+            start_x = size["width"] // 2
+            start_y = int(size["height"] * 0.7)
+            end_y = int(size["height"] * 0.3)
+
+            logger.info(f"Swiping from ({start_x}, {start_y}) to ({start_x}, {end_y})")
+            driver.swipe(start_x, start_y, start_x, end_y, 500)
+
+            self._take_screenshot(driver, "ios_after_swipe.png")
+        except Exception as e:
+            logger.warning(f"Swipe gesture failed: {e}")
+
+    def _test_navigation(self, driver, wait):
+        logger.info("Testing Navigation...")
+
+        try:
+            wait.until(EC.element_to_be_clickable(AppElements.COLOUR_ELEMENT)).click()
+            logger.info("Colour element clicked.")
+
+            wait.until(EC.element_to_be_clickable(AppElements.TEXT_ELEMENT)).click()
+            logger.info("Text element clicked.")
+
+            wait.until(EC.element_to_be_clickable(AppElements.TOAST_ELEMENT)).click()
+            logger.info("Toast element clicked.")
+
+            wait.until(EC.element_to_be_clickable(AppElements.HOME_ELEMENT)).click()
+            logger.info("Home element clicked.")
+
+
+            time.sleep(3)
+
+            wait.until(
+                EC.element_to_be_clickable(AppElements.GEOLOCATION_ELEMENT)
+            ).click()
+            logger.info("Geolocation element clicked.")
+            time.sleep(5)
+
+            wait.until(EC.element_to_be_clickable((AppiumBy.ID, "Back"))).click()
+            logger.info("Back button clicked.")
+
+            wait.until(
+                EC.element_to_be_clickable(AppElements.NOTIFICATION_ELEMENT)
+            ).click()
+            logger.info("Notification element clicked.")
+            logger.info("Navigation test completed successfully.")
+
+        except TimeoutException:
+            logger.error("Navigation test skipped - element not found (Timeout).")
+        except Exception as e:
+            logger.error(f"Navigation test error: {e}")
+
+
+    def _test_app_state_management(self, driver):
+        logger.info("Testing App State Management on iOS...")
+
+        try:
+            initial_app_state = driver.execute_script("mobile: queryAppState", {"bundleId": driver.capabilities.get('bundleId')})
+            logger.info(f"Initial app state: {initial_app_state} (4 = foreground, 2/3 = background)")
+
+            # Verify it's in the foreground initially (state 4)
+            if initial_app_state != 4:
+                logger.warning(f"App not in foreground initially (state: {initial_app_state}), trying to activate.")
+                driver.activate_app(driver.capabilities.get('bundleId'))
+                time.sleep(3)
+                initial_app_state = driver.execute_script("mobile: queryAppState", {"bundleId": driver.capabilities.get('bundleId')})
+                assert initial_app_state == 4, "Failed to activate app to foreground"
+
+            # send app to background
+            logger.info("Sending app to background.")
+            driver.background_app(-1)
+            time.sleep(3)
+
+            # Verify app is in background (state 2 or 3)
+            background_app_state = driver.execute_script("mobile: queryAppState", {"bundleId": driver.capabilities.get('bundleId')})
+            logger.info(f"App state after backgrounding: {background_app_state}")
+            assert background_app_state in [2, 3], "App not in background after background_app command"
+
+            logger.info("Activating app to foreground.")
+            driver.activate_app(driver.capabilities.get('bundleId'))
+            # driver.launch_app()
+
+            time.sleep(5)
+
+            # Verify app is back in foreground (state 4)
+            foreground_app_state = driver.execute_script("mobile: queryAppState", {"bundleId": driver.capabilities.get('bundleId')})
+            logger.info(f"App state after foregrounding: {foreground_app_state}")
+            assert foreground_app_state == 4, (
+                "App not in foreground after returning from background"
+            )
+
+            logger.info("App state verified after background/foreground cycle.")
+
+        except Exception as e:
+            logger.warning(f"App state management failed: {e}")
+
+
+    def _take_screenshot(self, driver, filename):
+        try:
+            driver.save_screenshot(filename)
+            logger.info(f"Screenshot saved as '{filename}'")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save screenshot '{filename}': {e}")
+            return False
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-s"],)

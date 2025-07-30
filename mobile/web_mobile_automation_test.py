@@ -2,25 +2,62 @@
 Web Mobile Automation Test (LambdaTest Cloud)
 This script demonstrates browser automation on real mobile devices using Playwright and LambdaTest.
 """
+
 import pytest
-from playwright.sync_api import sync_playwright
+from appium.webdriver.common.appiumby import AppiumBy
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-MOBILE_CAPS = {
-    "browserName": "Chrome",
-    "browserVersion": "latest",
-    "LT:Options": {
-        "platform": "Android",
-        "deviceName": "Galaxy S21",
-        "realMobile": True,
-        "build": "Mobile Web Build",
-        "name": "Web Mobile Automation Test"
-    }
-}
+import logging
 
-@pytest.mark.parametrize("lt_browser", [{"browser_type": "chrome", "capabilities": MOBILE_CAPS}], indirect=True)
-def test_web_mobile_automation(lt_browser):
-    page = lt_browser.new_page()
-    page.goto("https://www.lambdatest.com/selenium-playground/")
-    assert "Selenium" in page.title()
-    print(f"[Mobile Web] Page title: {page.title()}")
-    page.close()
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+MOBILE_CAPS = {"build": "Mobile Web Build", "name": "Web Mobile Automation Test"}
+
+
+@pytest.mark.parametrize("android_driver", [MOBILE_CAPS], indirect=True)
+def test_web_mobile_automation(android_driver):
+
+    # get the browser button
+    browser = WebDriverWait(android_driver, 20).until(
+        EC.element_to_be_clickable(
+            (AppiumBy.ID, "com.lambdatest.proverbial:id/webview")
+        )
+    )
+    # click the browser button
+    browser.click()
+
+    # get the url text input
+    url = WebDriverWait(android_driver, 20).until(
+        EC.element_to_be_clickable((AppiumBy.ID, "com.lambdatest.proverbial:id/url"))
+    )
+    # enter the url
+    url.send_keys("https://www.lambdatest.com/selenium-playground")
+
+    # get the find button
+    find = WebDriverWait(android_driver, 20).until(
+        EC.element_to_be_clickable((AppiumBy.ID, "com.lambdatest.proverbial:id/find"))
+    )
+    # click the find button
+    find.click()
+
+    # switch to webview so that the content of the webpage can be fetched
+    WebDriverWait(android_driver, 20).until(lambda d: len(d.contexts) > 1)
+    for context in android_driver.contexts:
+        if context.startswith("WEBVIEW"):
+            android_driver.switch_to.context(context)
+            break
+
+    # ow assert page title
+    WebDriverWait(android_driver, 20).until(lambda d: "Selenium" in d.title)
+    assert "Selenium" in android_driver.title
+    logging.info(f"[Mobile Web] Page title: {android_driver.title}")
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-s"])

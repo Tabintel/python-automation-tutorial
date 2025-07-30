@@ -14,19 +14,19 @@ Execution:
     Build and run via Docker as per instructions in the README.
 """
 
-import os
-import json
-from playwright.sync_api import sync_playwright
 import pytest
+import logging
 
-def get_ws_endpoint(caps: dict) -> str:
-    username = os.getenv("LT_USERNAME")
-    access_key = os.getenv("LT_ACCESS_KEY")
-    caps_json = json.dumps(caps)
-    return f"wss://cdp.lambdatest.com/playwright?capabilities={caps_json}&user={username}&key={access_key}"
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 
 # Refactor to use lt_browser fixture
-@pytest.mark.parametrize("lt_browser", [{"browser_type": "chromium", "capabilities": {"browserName": "Chrome", "browserVersion": "latest", "LT:Options": {"platform": "Windows 10", "build": "Docker-Build", "name": "Docker Integration Test"}}}], indirect=True)
+@pytest.mark.parametrize("lt_browser", [{"browser_type": "chrome", "browser_name": "Chrome", "browser_version": "latest", "platform": "Windows 10", "build": "Docker-Build", "name": "Docker Integration Test"}], indirect=True)
 def test_docker_integration(lt_browser):
     """
     Run Playwright tests inside a Docker container on LambdaTest.
@@ -34,7 +34,7 @@ def test_docker_integration(lt_browser):
     page = lt_browser.new_page()
     page.goto("https://www.lambdatest.com/selenium-playground/")
     assert "Selenium" in page.title()
-    print(f"[Docker Integration] Test completed. Title: {page.title()}")
+    logging.info(f"[Docker Integration] Test completed. Title: {page.title()}")
     page.close()
 
 if __name__ == "__main__":
