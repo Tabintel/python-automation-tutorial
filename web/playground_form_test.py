@@ -30,23 +30,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def get_ws_endpoint(caps: dict) -> str:
-    username = os.getenv("LT_USERNAME")
-    access_key = os.getenv("LT_ACCESS_KEY")
-    
-    if not username or not access_key:
-        raise EnvironmentError("LT_USERNAME and LT_ACCESS_KEY environment variables must be set")
-    
-    caps_json = json.dumps(caps)
-    # LambdaTest Playwright endpoint format
-    ws_endpoint = f"wss://cdp.lambdatest.com/playwright?capabilities={caps_json}&user={username}&key={access_key}"
-    return ws_endpoint
-
-@pytest.mark.parametrize("lt_browser", [{"browser_type": "chrome", "capabilities": {"browserName": "Chrome", "browserVersion": "latest", "LT:Options": {"platform": "Windows 10", "build": "Playground-Build", "name": "Playground Form Test"}}}], indirect=True)
-def test_playground_form(lt_browser):
-    """
-    Automates form submission on LambdaTest Selenium Playground using Playwright and LambdaTest cloud.
-    """
     page = lt_browser.new_page()
     logger.info("Navigating to LambdaTest Selenium Playground")
     page.goto("https://www.lambdatest.com/selenium-playground/")
@@ -67,10 +50,28 @@ def test_playground_form(lt_browser):
     if "LambdaTest Automation" in output_text:
         logger.info("Form submission verification successful")
         # Mark test as passed in LambdaTest
-        page.evaluate("_ => {}", "lambdatest_action: setTestStatus", {"status": "passed", "remark": "Form submission successful"})
+        page.evaluate("""() => {
+            window.lambdatest_action = {
+                action: 'setTestStatus',
+                arguments: {
+                    status: 'passed',
+                    remark: 'Form submission successful'
+                }
+            }
+        }""")
+
     else:
         logger.error("Form submission verification failed")
-        page.evaluate("_ => {}", "lambdatest_action: setTestStatus", {"status": "failed", "remark": "Form submission failed"})
+        page.evaluate("""() => {
+            window.lambdatest_action = {
+                action: 'setTestStatus',
+                arguments: {
+                    status: 'failed',
+                    remark: 'Form submission failed'
+                }
+            }
+        }""")
+
     
     page.close()
     logger.info("Test completed successfully")

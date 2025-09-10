@@ -22,6 +22,14 @@ Execution:
 
 import pytest
 from playwright.sync_api import expect
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Note: Playwright does not support real device automation directly.
 # This test demonstrates mobile emulation in the browser.
@@ -46,6 +54,7 @@ MOBILE_DEVICES = [
     }
 ]
 
+@pytest.mark.parametrize("lt_browser", [{"browser_type": "chrome", "browser_name": "Chrome", "browser_version": "latest", "platform": "Windows 10", "build": "Mobile Automation Build", "name": "E-commerce Search Test"}], indirect=True)
 @pytest.mark.parametrize('device', MOBILE_DEVICES, ids=[d["name"] for d in MOBILE_DEVICES])
 def test_mobile_emulation(lt_page, device):
     """
@@ -65,34 +74,57 @@ def test_mobile_emulation(lt_page, device):
     page.wait_for_load_state("networkidle")
     
     # Verify the page loaded correctly
-    header = page.get_by_role("heading", name="Shop by Category")
+    # header = page.get_by_role("heading", name="Shop by Category") # the "Shop by Category header is showing on desktop mode, not mobile"
+    header = page.get_by_role("button", name="All Categories")
     assert header.is_visible(), f"Page header not found on {device['name']}"
     
     # Check for mobile-specific elements
-    menu_button = page.locator("button[data-toggle='dropdown']")
+    menu_button = page.get_by_role("button", name="Shop by Category")
     assert menu_button.is_visible(), "Mobile menu button not visible"
     
     # Take a screenshot for verification
     screenshot_path = f"mobile_test_{device['name'].lower().replace(' ', '_')}.png"
     page.screenshot(path=screenshot_path)
-    print(f"Screenshot saved: {screenshot_path}")
+    logging.info(f"Screenshot saved: {screenshot_path}")
     
     # Verify responsive behavior
     viewport_size = page.viewport_size
     if viewport_size and viewport_size["width"] < 768:  # Mobile breakpoint
         # Check if mobile menu is collapsed by default
-        nav_menu = page.locator("nav.navbar-collapse")
-        assert not nav_menu.is_visible(), "Mobile menu should be collapsed on small screens"
-        
-        # Open mobile menu and verify
+        # Locate drawer by its heading
+        drawer = page.locator("div.mz-pure-drawer:has(h5:has-text('Top categories'))")
+
+        # Validate that it's now active (has 'active' in class)
+        assert not drawer.evaluate("el => el.classList.contains('active')"), "Drawer is active before clicking menu"
+
+        # Click the hamburger menu button
         menu_button.click()
-        assert nav_menu.is_visible(), "Mobile menu should be visible after clicking the menu button"
+
+        # Wait until the menu becomes visible (class 'show' is added)
+        page.wait_for_timeout(1000)  # Small wait for animation
+
+        # Locate drawer by its heading
+        drawer = page.locator("div.mz-pure-drawer:has(h5:has-text('Top categories'))")
+
+        # Validate that it's now active (has 'active' in class)
+        assert drawer.evaluate("el => el.classList.contains('active')"), "Drawer is not active after clicking menu"
+
+        # click the menu button again to close the nav bar
+        close_button = page.get_by_role("heading", name="Top categories close").get_by_label("close")
+        close_button.click()
+
+        # Wait until the menu becomes hidden (class 'show' is removed)
+        page.wait_for_timeout(1000)  # Small wait for animation
+
+
     
     # Verify touch interactions work
-    search_icon = page.locator("a[title='Search']")
+    search_icon = page.get_by_title("Search")
     search_icon.click()
+
+    page.wait_for_timeout(1000)
     
-    search_input = page.locator("input[name='search']")
+    search_input = page.get_by_placeholder("Keywords")
     assert search_input.is_visible(), "Search input should be visible after clicking search icon"
     
     # Test form input
@@ -110,4 +142,8 @@ def test_mobile_emulation(lt_page, device):
     assert product_count > 0, "No products found in search results"
     
     # Log test completion
-    print(f"Successfully completed mobile test on {device['name']} with viewport {device['viewport']}")
+    logging.info(f"Successfully completed mobile test on {device['name']} with viewport {device['viewport']}")
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])

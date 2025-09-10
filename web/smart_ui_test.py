@@ -18,10 +18,8 @@ Execution:
 """
 
 import os
-import json
 import logging
 import pytest
-from playwright.sync_api import sync_playwright
 
 # Configure logging
 logging.basicConfig(
@@ -30,17 +28,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def get_ws_endpoint(caps: dict) -> str:
-    username = os.getenv("LT_USERNAME")
-    access_key = os.getenv("LT_ACCESS_KEY")
-    
-    if not username or not access_key:
-        raise EnvironmentError("LT_USERNAME and LT_ACCESS_KEY environment variables must be set")
-    
-    caps_json = json.dumps(caps)
-    return f"wss://cdp.lambdatest.com/playwright?capabilities={caps_json}&user={username}&key={access_key}"
 
-@pytest.mark.parametrize("lt_browser", [{"browser_type": "firefox", "capabilities": {"browserName": "Firefox", "browserVersion": "latest", "LT:Options": {"platform": "Windows 10", "build": "SmartUI-Build", "name": "Smart UI Test"}}}], indirect=True)
+@pytest.mark.parametrize("lt_browser", [{"browser_type": "chrome", "browser_name": "Chrome", "browser_version": "latest", "platform": "Windows 10", "build": "SmartUI-Build", "name": "Smart UI Test"}], indirect=True)
 def test_smart_ui_baseline_and_comparison(lt_browser):
     """
     Smart UI test: Establishes a baseline and compares header element dimensions across builds.
@@ -59,15 +48,16 @@ def test_smart_ui_baseline_and_comparison(lt_browser):
     baseline_path = "smartui_screenshots/baseline_header.png"
     if os.path.exists(baseline_path):
         # Compare bounding box and/or image (pseudo-code for image diff)
-        print(f"Comparing header screenshot to baseline.")
+        logger.info("Comparing header screenshot to baseline.")
         # Implement actual image diff as needed (e.g., PIL, OpenCV)
         if bbox:
-            print(f"Current header bbox: {bbox}")
+            logger.info(f"Current header bbox: {bbox}")
             # Load and compare previous bbox if stored
-        print(f"Comparison complete. (Visual diff not implemented in this sample)")
+        logger.info("Comparison complete. (Visual diff not implemented in this sample)")
     else:
-        print("No baseline found. Saving current header screenshot as baseline.")
+        logger.info("No baseline found. Saving current header screenshot as baseline.")
         os.replace(screenshot_path, baseline_path)
+
     page.close()
 
 if __name__ == "__main__":

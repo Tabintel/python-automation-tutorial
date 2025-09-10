@@ -14,36 +14,42 @@ Execution:
     Check console output and LambdaTest Dashboard for parallel test results.
 """
 
-import os
-import json
-import threading
 import pytest
-from playwright.sync_api import sync_playwright
+import logging
+import sys
 
-def test_parallel_execution(pytestconfig):
-    browsers = [
-        {"browser_type": "chrome", "capabilities": {"browserName": "Chrome", "browserVersion": "latest", "LT:Options": {"platform": "Windows 10", "build": "Parallel-Build", "name": "Chrome Test"}}},
-        {"browser_type": "firefox", "capabilities": {"browserName": "Firefox", "browserVersion": "latest", "LT:Options": {"platform": "Windows 10", "build": "Parallel-Build", "name": "Firefox Test"}}},
-        {"browser_type": "safari", "capabilities": {"browserName": "Safari", "browserVersion": "latest", "LT:Options": {"platform": "macOS Big Sur", "build": "Parallel-Build", "name": "Safari Test"}}}
-    ]
 
-    def run(browser_param):
-        from playwright.sync_api import Error
-        try:
-            browser = pytestconfig._store['lt_browser'](browser_param)
-            page = browser.new_page()
-            page.goto("https://www.lambdatest.com/selenium-playground/")
-            print(f"[{browser_param['browser_type']}] Page title: {page.title()}")
-            page.close()
-        except Error as e:
-            print(f"Error with {browser_param['browser_type']}: {e}")
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-    threads = []
-    for param in browsers:
-        t = threading.Thread(target=run, args=(param,))
-        t.start()
-        threads.append(t)
-    for t in threads:
-        t.join()
 
-    print("Parallel execution test completed.")
+browsers = [
+    {"browser_type": "chrome", "browser_name": "Chrome", "browser_version": "latest", "platform": "Windows 10", "build": "Parallel-Build", "name": "Chrome Test"},
+    {"browser_type": "edge", "browser_name": "MicrosoftEdge", "browser_version": "latest", "platform": "Windows 10", "build": "Parallel-Build", "name": "MicrosoftEdge Test"},
+]
+
+if sys.platform != "win32":
+    browsers.append({
+        "browser_type": "safari",
+        "browser_name": "pw-webkit",
+        "browser_version": "latest",
+        "platform": "macOS Big Sur",
+        "build": "Parallel-Build",
+        "name": "Safari Test"
+    })
+
+
+@pytest.mark.parametrize("lt_browser", browsers, indirect=True)
+def test_parallel_execution(lt_browser):
+    page = lt_browser.new_page()
+    page.goto("https://www.lambdatest.com/selenium-playground/")
+    logger.info(f"Page title: {page.title()}")
+    page.close()
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "-n", "2"])
